@@ -3,12 +3,21 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, engine, get_db
 import models
 import schemas
 
 app = FastAPI(title="Zapera Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Ajuste conforme necessário para segurança
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # cria as tabelas se ainda não existirem
 Base.metadata.create_all(bind=engine)

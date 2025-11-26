@@ -1,16 +1,28 @@
-// src/services/api.js
+// coloque aqui o IP da SUA máquina, o mesmo que aparece no Expo (ex: 192.168.18.45)
+const API_BASE_URL = "http://192.168.18.45:8000"; // <-- troque esse IP pelo seu
 
-import axios from "axios";
+export const loginRequest = async (email, senha) => {
+  const response = await fetch(`${API_BASE_URL}/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, senha }),
+  });
 
-// DURANTE DESENVOLVIMENTO use o IP LOCAL da sua máquina
-// Acesse CMD e rode: ipconfig
-// Pegue algo como: 192.168.0.12
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (e) {
+    data = null;
+  }
 
-const API_BASE_URL = "http://192.168.18.45:8000"; // <-- troque pelo seu IP
+  if (!response.ok) {
+    const message =
+      (data && (data.detail || data.message)) ||
+      "Erro ao fazer login. Tente novamente.";
+    throw new Error(message);
+  }
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 8000,
-});
-
-export default api;
+  return data;
+};

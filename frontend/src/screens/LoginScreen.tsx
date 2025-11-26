@@ -10,16 +10,37 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/RootNavigator";
+import { loginRequest } from "../services/api";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mensagem, setMensagem] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // futura integração com API de autenticação
-    navigation.navigate("Home");
+  const handleLogin = async () => {
+    setMensagem(null);
+
+    if (!email || !password) {
+      setMensagem("Preencha e-mail e senha.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const data = await loginRequest(email, password);
+
+      // se chegou aqui, login OK
+      // vamos navegar para a Home passando o usuarioId
+      navigation.replace("Home", { usuarioId: data.usuario_id });
+    } catch (err: any) {
+      setMensagem(err.message || "Erro ao fazer login.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
