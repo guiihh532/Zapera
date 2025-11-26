@@ -1,76 +1,155 @@
-// src/screens/LoginScreen.tsx
-
 import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/RootNavigator";
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<any, 'Login'>;
+type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
-interface LoginScreenProps {
-  navigation: LoginScreenNavigationProp;
-}
-export default function LoginScreen({ navigation }: LoginScreenProps) {
+export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = () => {
+    // futura integração com API de autenticação
+    navigation.navigate("Home");
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Entrar</Text>
-
-      <Text style={styles.label}>E-mail</Text>
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="email@example.com"
-        placeholderTextColor="#64748B"
-      />
-
-      <Text style={styles.label}>Senha</Text>
-      <TextInput
-        style={styles.input}
-        value={senha}
-        onChangeText={setSenha}
-        secureTextEntry
-        placeholder="••••••••"
-        placeholderTextColor="#64748B"
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.replace("Home")}
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.buttonText}>Entrar</Text>
-      </TouchableOpacity>
+        <View style={styles.header}>
+          <Text style={styles.logo}>Zapera</Text>
+          <Text style={styles.subtitle}>
+            Acesse sua conta e continue as conversas com a IA.
+          </Text>
+        </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-        <Text style={styles.link}>
-          Ainda não tem conta? <Text style={styles.linkBold}>Criar conta</Text>
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>E-mail ou número</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="voce@empresa.com"
+            placeholderTextColor="#94A3B8"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Senha</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Digite sua senha"
+            placeholderTextColor="#94A3B8"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+          <Text style={styles.primaryText}>Entrar</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footerLinks}>
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <Text style={styles.linkText}>Criar conta</Text>
+          </TouchableOpacity>
+          <Text style={styles.dot}>•</Text>
+          <TouchableOpacity>
+            <Text style={styles.linkText}>Esqueci minha senha</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: "#020617" },
-  title: { fontSize: 24, color: "#F1F5F9", marginBottom: 24 },
-  label: { color: "#E2E8F0", marginBottom: 6 },
-  input: {
+  container: {
+    flex: 1,
     backgroundColor: "#0F172A",
-    padding: 12,
-    borderRadius: 8,
+  },
+  content: {
+    padding: 20,
+  },
+  header: {
+    marginBottom: 28,
+    gap: 6,
+  },
+  logo: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#22C55E",
+  },
+  subtitle: {
+    color: "#E5E7EB",
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  fieldGroup: {
     marginBottom: 16,
+  },
+  label: {
+    color: "#CBD5E1",
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  input: {
+    backgroundColor: "#111827",
+    borderColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     color: "#F8FAFC",
+    fontSize: 15,
   },
-  button: {
+  primaryButton: {
     backgroundColor: "#22C55E",
-    paddingVertical: 12,
-    borderRadius: 999,
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 6,
+    shadowColor: "#22C55E",
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 8 },
   },
-  buttonText: { color: "#020617", fontWeight: "bold" },
-  link: { color: "#94A3B8", marginTop: 24, textAlign: "center" },
-  linkBold: { color: "#22C55E" },
+  primaryText: {
+    color: "#0B1220",
+    fontWeight: "800",
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  footerLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 18,
+  },
+  linkText: {
+    color: "#A5B4FC",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  dot: {
+    color: "#475569",
+  },
 });
