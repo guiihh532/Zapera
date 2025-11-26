@@ -78,6 +78,31 @@ def criar_usuario(usuario_in: schemas.UsuarioCreate, db: Session = Depends(get_d
 
     return usuario
 
+@app.get("/usuarios/{usuario_id}", response_model=schemas.UsuarioOut)
+def obter_usuario(usuario_id: str, db: Session = Depends(get_db)):
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return usuario
+
+
+@app.patch("/usuarios/{usuario_id}/telefone", response_model=schemas.UsuarioOut)
+def atualizar_telefone(
+    usuario_id: str,
+    payload: schemas.UsuarioUpdateTelefone,
+    db: Session = Depends(get_db),
+):
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    usuario.telefone_whatsapp = payload.telefone_whatsapp
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    return usuario
+
 
 @app.post("/login")
 def login(usuario_login: schemas.UsuarioLogin, db: Session = Depends(get_db)):

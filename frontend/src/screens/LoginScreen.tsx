@@ -16,27 +16,26 @@ type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [senha, setSenha] = useState("");
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setMensagem(null);
 
-    if (!email || !password) {
+    if (!email || !senha) {
       setMensagem("Preencha e-mail e senha.");
       return;
     }
 
     try {
       setLoading(true);
+      const data = await loginRequest(email, senha);
+      console.log("✅ Login OK, recebemos:", data);
 
-      const data = await loginRequest(email, password);
-
-      // se chegou aqui, login OK
-      // vamos navegar para a Home passando o usuarioId
       navigation.replace("Home", { usuarioId: data.usuario_id });
     } catch (err: any) {
+      console.log("❌ Erro no login:", err);
       setMensagem(err.message || "Erro ao fazer login.");
     } finally {
       setLoading(false);
@@ -76,8 +75,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.input}
             placeholder="Digite sua senha"
             placeholderTextColor="#94A3B8"
-            value={password}
-            onChangeText={setPassword}
+            value={senha}
+            onChangeText={setSenha}
             secureTextEntry
           />
         </View>

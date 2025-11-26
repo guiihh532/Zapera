@@ -21,3 +21,6 @@ class UsuarioOut(UsuarioBase):
     data_criacao: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class UsuarioUpdateTelefone(BaseModel):
+    telefone_whatsapp: str
