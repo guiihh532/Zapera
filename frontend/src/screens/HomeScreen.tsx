@@ -1,244 +1,590 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
-import { NativeStackScreenProps, NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/RootNavigator";
+import { getUser, getPhones, createPhone, updatePhone, deletePhone, Telefone } from "../services/api";
+import { ScreenContainer } from "../components/ScreenContainer";
+import { Ionicons } from "@expo/vector-icons";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-const steps = [
-  "Valide seu número com uma mensagem de teste.",
-  "Suba sua base de conhecimento no painel web.",
-  "Ative respostas automáticas para perguntas frequentes.",
-];
-
-export const HomeScreen: React.FC<Props> = ({ navigation, route }) => {
+export const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
   const usuarioId = route.params?.usuarioId;
+
+  const [nome, setNome] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [statusConta, setStatusConta] = useState<string>("");
+
+  const [telefones, setTelefones] = useState<Telefone[]>([]);
+  const [editandoId, setEditandoId] = useState<null | number | "novo">(null);
+  const [telefoneNome, setTelefoneNome] = useState<string>("");
+  const [telefoneNumero, setTelefoneNumero] = useState<string>("");
+
+  const [carregando, setCarregando] = useState<boolean>(true);
+  const [salvandoTelefone, setSalvandoTelefone] = useState<boolean>(false);
+  const [mensagem, setMensagem] = useState<string | null>(null);
+  const [menuAberto, setMenuAberto] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!usuarioId) {
+      setMensagem("Usuário não identificado. Faça login novamente.");
+      setCarregando(false);
+      return;
+    }
+
+    const carregarDados = async () => {
+      try {
+        setCarregando(true);
+        setMensagem(null);
+
+        const user = await getUser(usuarioId);
+        setNome(user.nome);
+        setEmail(user.email);
+        setStatusConta(user.status_conta);
+
+        const phones = await getPhones(usuarioId);
+        setTelefones(phones);
+      } catch (err: any) {
+        setMensagem(err.message || "Erro ao carregar dados do usuário.");
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    carregarDados();
+  }, [usuarioId]);
+
+  const planoAtual =
+    statusConta === "TRIAL_ATIVO"
+      ? "Teste grátis Zapera"
+      : statusConta === "ATIVO"
+      ? "Plano Zapera Profissional"
+      : "Plano a definir";
+
+  const iniciarCriacaoTelefone = () => {
+    setEditandoId("novo");
+    setTelefoneNome("");
+    setTelefoneNumero("");
+    setMensagem(null);
+  };
+
+  const iniciarEdicaoTelefone = (telefone: Telefone) => {
+    setEditandoId(telefone.id);
+    setTelefoneNome(telefone.nome);
+    setTelefoneNumero(telefone.numero);
+    setMensagem(null);
+  };
+
+  const cancelarEdicaoTelefone = () => {
+    setEditandoId(null);
+    setTelefoneNome("");
+    setTelefoneNumero("");
+    setMensagem(null);
+  };
+
+  const handleSalvarTelefone = async () => {
+    if (!usuarioId) return;
+
+    if (!telefoneNome.trim() || !telefoneNumero.trim()) {
+      setMensagem("Informe nome e número do telefone.");
+      return;
+    }
+
+    try {
+      setSalvandoTelefone(true);
+      setMensagem(null);
+
+      if (editandoId === "novo") {
+        const isPrincipal = telefones.length === 0;
+        const novo = await createPhone(
+          usuarioId,
+          telefoneNome.trim(),
+          telefoneNumero.trim(),
+          isPrincipal
+        );
+        setTelefones((prev) => [...prev, novo]);
+        setMensagem("Telefone adicionado com sucesso.");
+      } else if (typeof editandoId === "number") {
+        const atualizado = await updatePhone(usuarioId, editandoId, {
+          nome: telefoneNome.trim(),
+          numero: telefoneNumero.trim(),
+        });
+        setTelefones((prev) =>
+          prev.map((t) => (t.id === atualizado.id ? atualizado : t))
+        );
+        setMensagem("Telefone atualizado com sucesso.");
+      }
+
+      cancelarEdicaoTelefone();
+    } catch (err: any) {
+      setMensagem(err.message || "Erro ao salvar telefone.");
+    } finally {
+      setSalvandoTelefone(false);
+    }
+  };
+
+  const handleRemoverTelefone = async (telefoneId: number) => {
+    if (!usuarioId) return;
+    try {
+      await deletePhone(usuarioId, telefoneId);
+      setTelefones((prev) => prev.filter((t) => t.id !== telefoneId));
+      setMensagem("Telefone removido.");
+      if (editandoId === telefoneId) {
+        cancelarEdicaoTelefone();
+      }
+    } catch (err: any) {
+      setMensagem(err.message || "Erro ao remover telefone.");
+    }
+  };
+
+  const handleSetPrincipal = async (telefone: Telefone) => {
+    if (!usuarioId) return;
+    try {
+      const atualizado = await updatePhone(usuarioId, telefone.id, {
+        is_principal: true,
+      });
+      setTelefones((prev) =>
+        prev.map((t) =>
+          t.id === atualizado.id
+            ? atualizado
+            : { ...t, is_principal: false }
+        )
+      );
+      setMensagem("Telefone principal atualizado.");
+    } catch (err: any) {
+      setMensagem(err.message || "Erro ao definir telefone principal.");
+    }
+  };
+
+  const handleLogout = () => {
+    setMenuAberto(false);
+    navigation.replace("Login");
+  };
+
+  const handleAlterarSenha = () => {
+    setMenuAberto(false);
+    setMensagem("Em breve você poderá alterar sua senha por aqui.");
+  };
+
+  const handleFotoPerfil = () => {
+    setMenuAberto(false);
+    navigation.navigate("Profile");
+  };
+
+  if (!usuarioId) {
+    return (
+      <ScreenContainer centerContent>
+        <Text style={styles.title}>Zapera – Home</Text>
+        <Text style={styles.text}>
+          Usuário não encontrado. Volte para a tela de login.
+        </Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.replace("Login")}
+        >
+          <Text style={styles.primaryButtonText}>Ir para Login</Text>
+        </TouchableOpacity>
+      </ScreenContainer>
+    );
+  }
+
+  if (carregando) {
+    return (
+      <ScreenContainer centerContent>
+        <ActivityIndicator size="large" color="#22C55E" />
+        <Text style={[styles.text, { marginTop: 16 }]}>
+          Carregando seus dados...
+        </Text>
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <View style={styles.heroTextGroup}>
-            <Text style={styles.heroLabel}>Painel Zapera</Text>
-            <Text style={styles.heroTitle}>WhatsApp pronto para a IA.</Text>
-            <Text style={styles.heroSubtitle}>
-              Monitore a conexão, acompanhe o plano e veja os próximos passos.
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate("Onboarding")}
-          >
-            <Text style={styles.secondaryButtonText}>Ver onboarding</Text>
-          </TouchableOpacity>
+    <ScreenContainer>
+      {/* Cabeçalho + menu */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.hello}>Olá,</Text>
+          <Text style={styles.userName}>{nome || "usuário Zapera"}</Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Status da conexão</Text>
-            <View style={styles.statusPill}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Online</Text>
+        <View style={styles.headerRight}>
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>{statusConta || "SEM_STATUS"}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuAberto((prev) => !prev)}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#E5E7EB" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {menuAberto && (
+        <View style={styles.menuDropdown}>
+          <TouchableOpacity style={styles.menuItem} onPress={handleAlterarSenha}>
+            <Text style={styles.menuItemText}>Alterar senha</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={handleFotoPerfil}>
+            <Text style={styles.menuItemText}>Foto de perfil</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+            <Text style={[styles.menuItemText, { color: "#F97373" }]}>
+              Sair
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Card de conta */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Sua conta</Text>
+        <Text style={styles.label}>E-mail</Text>
+        <Text style={styles.text}>{email}</Text>
+
+        <Text style={styles.label}>Plano atual</Text>
+        <Text style={styles.planText}>{planoAtual}</Text>
+      </View>
+
+      {/* Card de telefones */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Números do WhatsApp</Text>
+
+        {telefones.length === 0 && editandoId === null && (
+          <Text style={styles.text}>
+            Nenhum telefone vinculado ainda. Adicione um número para o Zapera
+            usar nas conversas.
+          </Text>
+        )}
+
+        {telefones.map((tel) => (
+          <View key={tel.id} style={styles.phoneRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.phoneName}>{tel.nome}</Text>
+              <Text style={styles.phoneNumber}>{tel.numero}</Text>
+              {tel.is_principal && (
+                <Text style={styles.phonePrincipal}>Principal</Text>
+              )}
+            </View>
+
+            <View style={styles.phoneActions}>
+              {!tel.is_principal && (
+                <TouchableOpacity
+                  style={styles.chipButton}
+                  onPress={() => handleSetPrincipal(tel)}
+                >
+                  <Text style={styles.chipButtonText}>Tornar principal</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.linkSmall}
+                onPress={() => iniciarEdicaoTelefone(tel)}
+              >
+                <Text style={styles.linkSmallText}>Editar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.linkSmall}
+                onPress={() => handleRemoverTelefone(tel.id)}
+              >
+                <Text style={[styles.linkSmallText, { color: "#F97373" }]}>
+                  Remover
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.cardBody}>
-            Seu agente está respondendo normalmente. Envie um teste para
-            confirmar o fluxo.
-          </Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => {}}>
-            <Text style={styles.primaryText}>Enviar teste</Text>
+        ))}
+
+        {(editandoId === "novo" || typeof editandoId === "number") && (
+          <View style={styles.phoneEditContainer}>
+            <Text style={styles.label}>Nome do telefone</Text>
+            <TextInput
+              style={styles.input}
+              value={telefoneNome}
+              onChangeText={setTelefoneNome}
+              placeholder="Ex.: Principal, Suporte, Pessoal"
+              placeholderTextColor="#64748B"
+            />
+
+            <Text style={styles.label}>Número</Text>
+            <TextInput
+              style={styles.input}
+              value={telefoneNumero}
+              onChangeText={setTelefoneNumero}
+              placeholder="(99) 99999-9999"
+              placeholderTextColor="#64748B"
+              keyboardType="phone-pad"
+            />
+
+            <View style={styles.rowButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  salvandoTelefone && styles.buttonDisabled,
+                  { flex: 1 },
+                ]}
+                onPress={handleSalvarTelefone}
+                disabled={salvandoTelefone}
+              >
+                {salvandoTelefone ? (
+                  <ActivityIndicator color="#022C22" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Salvar</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.secondaryButton, { flex: 1 }]}
+                onPress={cancelarEdicaoTelefone}
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {editandoId === null && (
+          <TouchableOpacity
+            style={[styles.secondaryButton, { marginTop: 12 }]}
+            onPress={iniciarCriacaoTelefone}
+          >
+            <Text style={styles.secondaryButtonText}>Adicionar telefone</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Card de plano */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Plano e faturamento</Text>
+
+        <Text style={styles.label}>Plano atual</Text>
+        <Text style={styles.planText}>{planoAtual}</Text>
+
+        <View style={styles.rowButtons}>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { flex: 1 }]}
+            onPress={() =>
+              setMensagem(
+                "Em breve você poderá ver os detalhes completos do plano aqui."
+              )
+            }
+          >
+            <Text style={styles.secondaryButtonText}>Ver detalhes</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.primaryButton, { flex: 1 }]}
+            onPress={() =>
+              setMensagem(
+                "Em breve você poderá alterar o plano e fazer upgrade direto pelo app."
+              )
+            }
+          >
+            <Text style={styles.primaryButtonText}>Alterar plano</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Próximos passos</Text>
-          <View style={styles.stepList}>
-            {steps.map((step, index) => (
-              <View key={step} style={styles.stepRow}>
-                <Text style={styles.stepIndex}>{index + 1}</Text>
-                <Text style={styles.stepText}>{step}</Text>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => {}}>
-            <Text style={styles.secondaryButtonText}>Abrir checklist</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Plano ativo</Text>
-          <Text style={styles.cardBody}>
-            Trial gratuito de 7 dias • Limite de 500 mensagens.
-          </Text>
-          <View style={styles.planActions}>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => {}}>
-              <Text style={styles.primaryText}>Escolher plano</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.outlineButton}
-              onPress={() => navigation.navigate("Login")}
-            >
-              <Text style={styles.outlineText}>Trocar conta</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {mensagem && <Text style={styles.message}>{mensagem}</Text>}
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0F172A",
-  },
-  content: {
-    padding: 20,
-    gap: 18,
-  },
-  hero: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    padding: 18,
-    gap: 14,
-  },
-  heroTextGroup: {
-    gap: 6,
-  },
-  heroLabel: {
-    color: "#93C5FD",
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  heroTitle: {
-    color: "#F8FAFC",
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  heroSubtitle: {
-    color: "#CBD5E1",
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  card: {
-    backgroundColor: "#0B1220",
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
-    gap: 12,
-  },
-  cardHeader: {
+  header: {
+    marginTop: 8,
+    marginBottom: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  cardTitle: {
-    color: "#E5E7EB",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  cardBody: {
-    color: "#CBD5E1",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  statusPill: {
+  headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 8,
+  },
+  hello: {
+    color: "#9CA3AF",
+    fontSize: 14,
+  },
+  userName: {
+    color: "#F9FAFB",
+    fontSize: 20,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  badgeContainer: {
+    backgroundColor: "#22C55E33",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 999,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: "#22C55E",
-    marginRight: 6,
+  badgeText: {
+    color: "#22C55E",
+    fontSize: 12,
+    fontWeight: "600",
   },
-  statusText: {
-    color: "#A7F3D0",
-    fontWeight: "700",
-    fontSize: 13,
+  menuButton: {
+    padding: 6,
+  },
+  menuDropdown: {
+    position: "absolute",
+    top: 56,
+    right: 24,
+    backgroundColor: "#020617",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    paddingVertical: 4,
+    width: 180,
+    zIndex: 10,
+  },
+  menuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  menuItemText: {
+    color: "#E5E7EB",
+    fontSize: 14,
+  },
+  card: {
+    backgroundColor: "#020617",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    marginBottom: 12,
+  },
+  cardTitle: {
+    color: "#E5E7EB",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  label: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  text: {
+    color: "#CBD5E1",
+    fontSize: 14,
+  },
+  planText: {
+    color: "#F9FAFB",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  input: {
+    backgroundColor: "#0B1120",
+    padding: 10,
+    borderRadius: 8,
+    color: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#111827",
+    marginTop: 4,
+  },
+  rowButtons: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
   },
   primaryButton: {
     backgroundColor: "#22C55E",
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
     alignItems: "center",
-    shadowColor: "#22C55E",
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
+    marginTop: 4,
   },
-  primaryText: {
-    color: "#0B1220",
-    fontWeight: "800",
-    fontSize: 15,
+  primaryButtonText: {
+    color: "#022C22",
+    fontWeight: "600",
+    fontSize: 14,
   },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: "#22C55E",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    borderColor: "#374151",
+    paddingVertical: 10,
+    borderRadius: 999,
     alignItems: "center",
-    backgroundColor: "rgba(34, 197, 94, 0.06)",
+    marginTop: 4,
   },
   secondaryButtonText: {
     color: "#E5E7EB",
-    fontWeight: "700",
     fontSize: 14,
   },
-  stepList: {
-    gap: 10,
+  buttonDisabled: {
+    opacity: 0.7,
   },
-  stepRow: {
+  phoneRow: {
     flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#111827",
   },
-  stepIndex: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.08)",
+  phoneName: {
     color: "#E5E7EB",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  phoneNumber: {
+    color: "#CBD5E1",
+    fontSize: 13,
+  },
+  phonePrincipal: {
+    color: "#22C55E",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  phoneActions: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  chipButton: {
+    backgroundColor: "#22C55E33",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  chipButtonText: {
+    color: "#22C55E",
+    fontSize: 11,
+  },
+  linkSmall: {
+    paddingVertical: 2,
+  },
+  linkSmallText: {
+    color: "#93C5FD",
+    fontSize: 12,
+  },
+  phoneEditContainer: {
+    marginTop: 12,
+  },
+  title: {
+    fontSize: 22,
+    color: "#F9FAFB",
+    fontWeight: "600",
     textAlign: "center",
-    textAlignVertical: "center",
-    fontWeight: "800",
+    marginBottom: 12,
   },
-  stepText: {
-    color: "#CBD5E1",
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  planActions: {
-    gap: 10,
-  },
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  outlineText: {
-    color: "#CBD5E1",
-    fontWeight: "700",
-    fontSize: 14,
+  message: {
+    marginTop: 8,
+    textAlign: "center",
+    color: "#F97316",
+    fontSize: 13,
   },
 });

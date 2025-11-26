@@ -1,107 +1,136 @@
 import React, { useState } from "react";
 import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
+  StyleSheet,
   TouchableOpacity,
-  View,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/RootNavigator";
+import { registerRequest } from "../services/api";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Register">;
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
-  const [name, setName] = useState("");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [senha, setSenha] = useState("");
+  const [mensagem, setMensagem] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    // futura integração com API de criação de conta
-    navigation.navigate("Home");
+  const handleRegister = async () => {
+    console.log("🟢 [RegisterScreen] Clicou em Cadastrar");
+    setMensagem(null);
+
+    if (!nome || !email || !senha) {
+      setMensagem("Preencha nome, e-mail e senha.");
+      return;
+    }
+
+    if (senha.length < 8) {
+      setMensagem("A senha deve ter pelo menos 8 caracteres.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { status, body } = await registerRequest(nome, email, senha);
+
+      console.log("✅ [RegisterScreen] Resposta do backend:", status, body);
+
+      if (status === 201) {
+        setMensagem("Conta criada com sucesso! Redirecionando para login...");
+
+        // Só navega SE realmente veio 201 do backend
+        setTimeout(() => {
+          navigation.replace("Login");
+        }, 1500);
+      } else {
+        const erro =
+          (body && (body.detail || body.message)) ||
+          "Erro ao criar conta. Tente novamente.";
+
+        setMensagem(erro);
+      }
+    } catch (error: any) {
+      console.log("❌ [RegisterScreen] Erro inesperado:", error);
+      setMensagem(error.message || "Erro inesperado ao criar conta.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+    <ScrollView
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      style={styles.container}
+    >
+      <View style={styles.header}>
+        <Text style={styles.logo}>Zapera</Text>
+        <Text style={styles.subtitle}>Crie sua conta e comece a usar a IA.</Text>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Nome</Text>
+        <TextInput
+          style={styles.input}
+          value={nome}
+          onChangeText={setNome}
+          placeholder="Seu nome"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>E-mail</Text>
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="email@example.com"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Senha</Text>
+        <TextInput
+          style={styles.input}
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry
+          placeholder="••••••••"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.primaryButton, loading && styles.buttonDisabled]}
+        onPress={handleRegister}
+        disabled={loading} // Disable button when loading
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>Vamos começar</Text>
-          <Text style={styles.subtitle}>
-            Crie sua conta, conecte o número do WhatsApp e teste a IA agora.
-          </Text>
-        </View>
+        {loading ? (
+          <ActivityIndicator color="#0F172A" />
+        ) : (
+          <Text style={styles.primaryText}>Cadastrar</Text>
+        )}
+      </TouchableOpacity>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Nome completo</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ana Zapera"
-            placeholderTextColor="#94A3B8"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>E-mail</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="voce@empresa.com"
-            placeholderTextColor="#94A3B8"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>WhatsApp</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="+55 11 98888-7777"
-            placeholderTextColor="#94A3B8"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Crie uma senha forte"
-            placeholderTextColor="#94A3B8"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <Text style={styles.helperText}>
-            Use pelo menos 8 caracteres, com número e letra.
-          </Text>
-        </View>
-
-        <TouchableOpacity style={styles.primaryButton} onPress={handleRegister}>
-          <Text style={styles.primaryText}>Criar conta</Text>
+      <View style={styles.footerLinks}>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.linkText}>Já possui conta? Entrar</Text>
         </TouchableOpacity>
+      </View>
 
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate("Login")}
-        >
-          <Text style={styles.secondaryText}>Já tenho conta</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      {mensagem && <Text style={styles.errorMessage}>{mensagem}</Text>}
+    </ScrollView>
   );
 };
 
@@ -111,15 +140,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#0F172A",
   },
   content: {
-    padding: 20,
+    padding: 20, // Add padding to content
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 28, // Increased margin for better spacing
     gap: 6,
   },
   logo: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 30, // Larger logo
+    fontWeight: "700",
     color: "#22C55E",
   },
   subtitle: {
@@ -128,7 +157,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   fieldGroup: {
-    marginBottom: 16,
+    marginBottom: 16, // Consistent spacing
   },
   label: {
     color: "#CBD5E1",
@@ -147,14 +176,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   helperText: {
-    color: "#94A3B8",
+    color: "#94A3B8", // Consistent color
     fontSize: 12,
     marginTop: 6,
   },
   primaryButton: {
     backgroundColor: "#22C55E",
     paddingVertical: 15,
-    borderRadius: 12,
+    borderRadius: 12, // Consistent border radius
     alignItems: "center",
     marginTop: 4,
     shadowColor: "#22C55E",
@@ -165,20 +194,34 @@ const styles = StyleSheet.create({
   primaryText: {
     color: "#0B1220",
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: 16, // Consistent font size
   },
   secondaryButton: {
-    borderWidth: 1,
-    borderColor: "#22C55E",
-    paddingVertical: 13,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 12,
-    backgroundColor: "rgba(34, 197, 94, 0.06)",
+    // Not used in this screen, but keeping for consistency if needed later
   },
   secondaryText: {
-    color: "#E5E7EB",
-    fontWeight: "700",
-    fontSize: 15,
+    // Not used in this screen
+  },
+  buttonDisabled: {
+    opacity: 0.7, // Visual feedback for disabled button
+  },
+  footerLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 18, // Consistent margin
+  },
+  linkText: {
+    color: "#A5B4FC", // Consistent link color
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  errorMessage: {
+    color: "#EF4444", // Red color for error messages
+    textAlign: "center",
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
