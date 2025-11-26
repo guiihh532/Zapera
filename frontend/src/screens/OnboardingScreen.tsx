@@ -1,172 +1,103 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/RootNavigator";
-
+import { ScreenContainer } from "../components/ScreenContainer";
+import Ionicons from 'react-native-vector-icons/Ionicons';
 type Props = NativeStackScreenProps<RootStackParamList, "Onboarding">;
 
 export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.badge}>Beta</Text>
-        <Text style={styles.logo}>Zapera</Text>
-        <Text style={styles.subtitle}>IA no seu WhatsApp</Text>
+    <ScreenContainer centerContent>
+      <View style={styles.logoContainer}>
+        <Ionicons name="chatbubbles-outline" size={56} color="#22C55E" />
+        <Text style={styles.logoText}>Zapera</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Seu assistente de IA pelo WhatsApp</Text>
+      <Text style={styles.title}>Seu agente de IA no WhatsApp</Text>
 
-        <Text style={styles.description}>
-          Conecte o seu numero a um agente de inteligencia artificial que
-          responde na mesma hora pelos seus contatos.
-        </Text>
+      <Text style={styles.subtitle}>
+        Ative seu teste, conecte seu número e deixe o Zapera automatizar tarefas,
+        responder clientes e ajudar seu dia a dia, tudo pelo WhatsApp.
+      </Text>
 
-        <View style={styles.featureList}>
-          <View style={styles.featureChip}>
-            <Text style={styles.featureText}>Sem integracao complicada</Text>
-          </View>
-          <View style={styles.featureChip}>
-            <Text style={styles.featureText}>Configuracao em minutos</Text>
-          </View>
-          <View style={styles.featureChip}>
-            <Text style={styles.featureText}>Teste gratis incluido</Text>
-          </View>
-        </View>
+      <View style={styles.buttons}>
+        <TouchableOpacity
+          style={[styles.button, styles.buttonPrimary]}
+          onPress={() => navigation.navigate("Register")}
+        >
+          <Text style={styles.buttonPrimaryText}>Começar agora</Text>
+        </TouchableOpacity>
 
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.buttonPrimary]}
-            onPress={() => navigation.navigate("Register")}
-          >
-            <Text style={styles.buttonPrimaryText}>Comecar agora</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.buttonSecondary]}
-            onPress={() => navigation.navigate("Login")}
-          >
-            <Text style={styles.buttonSecondaryText}>Ja tenho conta</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={() => navigation.navigate("Login")}
+        >
+          <Text style={styles.buttonSecondaryText}>Já tenho conta</Text>
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      <Text style={styles.footerText}>
+        Zapera • Beta • Integrado com IA e WhatsApp
+      </Text>
+    </ScreenContainer>
   );
 };
 
-// estilos simples, depois podemos extrair para um "design system"
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 32,
-    backgroundColor: "#0F172A",
-    justifyContent: "space-between",
-  },
-  header: {
+  logoContainer: {
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 24,
   },
-  badge: {
-    color: "#0F172A",
-    backgroundColor: "#22C55E",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    fontWeight: "600",
-    overflow: "hidden",
-    marginBottom: 10,
-    fontSize: 12,
-    textTransform: "uppercase",
-  },
-  logo: {
-    fontSize: 34,
-    fontWeight: "700",
+  logoText: {
+    marginTop: 8,
+    fontSize: 32,
+    fontWeight: "bold",
     color: "#F9FAFB",
-    marginBottom: 6,
+  },
+  title: {
+    fontSize: 24,
+    color: "#E5E7EB",
     textAlign: "center",
-    letterSpacing: 1,
+    marginBottom: 8,
+    fontWeight: "600",
   },
   subtitle: {
     color: "#9CA3AF",
-    fontSize: 15,
     textAlign: "center",
+    marginBottom: 32,
+    fontSize: 14,
+    lineHeight: 20,
   },
-  card: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  title: {
-    fontSize: 22,
-    color: "#F9FAFB",
-    fontWeight: "700",
-    marginBottom: 12,
-    textAlign: "left",
-  },
-  description: {
-    fontSize: 15,
-    color: "#D1D5DB",
-    marginBottom: 14,
-    lineHeight: 22,
-  },
-  featureList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  featureChip: {
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.35)",
-  },
-  featureText: {
-    color: "#CFFAFE",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  buttonsContainer: {
-    marginTop: 10,
+  buttons: {
+    gap: 12,
+    marginBottom: 24,
   },
   button: {
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 999,
     alignItems: "center",
-    marginBottom: 12,
   },
   buttonPrimary: {
     backgroundColor: "#22C55E",
   },
   buttonPrimaryText: {
-    color: "#0B1220",
-    fontWeight: "700",
+    color: "#022C22",
+    fontWeight: "bold",
     fontSize: 16,
   },
   buttonSecondary: {
     borderWidth: 1,
     borderColor: "#22C55E",
-    backgroundColor: "rgba(34, 197, 94, 0.08)",
   },
   buttonSecondaryText: {
     color: "#E5E7EB",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+  },
+  footerText: {
+    marginTop: 16,
+    textAlign: "center",
+    color: "#6B7280",
+    fontSize: 12,
   },
 });

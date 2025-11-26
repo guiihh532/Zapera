@@ -7,12 +7,14 @@ import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
 import { HomeScreen } from "../screens/HomeScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
   Home: { usuarioId: string } | undefined;
+  Profile: undefined;
 };
 
 
@@ -28,6 +30,7 @@ export const RootNavigator: React.FC = () => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
     </Stack.Navigator>
   );
 };

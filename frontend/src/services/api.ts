@@ -107,3 +107,106 @@ export async function updateUserPhone(usuarioId: string, telefone: string) {
     data_criacao: string;
   };
 }
+
+export type Telefone = {
+  id: number;
+  nome: string;
+  numero: string;
+  is_principal: boolean;
+};
+
+export async function getPhones(usuarioId: string): Promise<Telefone[]> {
+  console.log("🔵 [getPhones] Buscando telefones do usuário:", usuarioId);
+
+  const response = await fetch(`${API_BASE_URL}/usuarios/${usuarioId}/telefones`);
+
+  const data = await response.json().catch(() => null);
+  console.log("🟡 [getPhones] status:", response.status, "body:", data);
+
+  if (!response.ok) {
+    const msg =
+      (data && (data.detail || data.message)) ||
+      "Erro ao buscar telefones do usuário.";
+    throw new Error(msg);
+  }
+
+  return data as Telefone[];
+}
+
+export async function createPhone(
+  usuarioId: string,
+  nome: string,
+  numero: string,
+  isPrincipal: boolean
+): Promise<Telefone> {
+  console.log("🔵 [createPhone] Criando telefone...", { usuarioId, nome, numero, isPrincipal });
+
+  const response = await fetch(`${API_BASE_URL}/usuarios/${usuarioId}/telefones`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nome, numero, is_principal: isPrincipal }),
+  });
+
+  const data = await response.json().catch(() => null);
+  console.log("🟡 [createPhone] status:", response.status, "body:", data);
+
+  if (!response.ok) {
+    const msg =
+      (data && (data.detail || data.message)) ||
+      "Erro ao criar telefone.";
+    throw new Error(msg);
+  }
+
+  return data as Telefone;
+}
+
+export async function updatePhone(
+  usuarioId: string,
+  telefoneId: number,
+  payload: { nome?: string; numero?: string; is_principal?: boolean }
+): Promise<Telefone> {
+  console.log("🔵 [updatePhone] Atualizando telefone...", { usuarioId, telefoneId, payload });
+
+  const response = await fetch(
+    `${API_BASE_URL}/usuarios/${usuarioId}/telefones/${telefoneId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+  console.log("🟡 [updatePhone] status:", response.status, "body:", data);
+
+  if (!response.ok) {
+    const msg =
+      (data && (data.detail || data.message)) ||
+      "Erro ao atualizar telefone.";
+    throw new Error(msg);
+  }
+
+  return data as Telefone;
+}
+
+export async function deletePhone(
+  usuarioId: string,
+  telefoneId: number
+): Promise<void> {
+  console.log("🔵 [deletePhone] Removendo telefone...", { usuarioId, telefoneId });
+
+  const response = await fetch(
+    `${API_BASE_URL}/usuarios/${usuarioId}/telefones/${telefoneId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const msg =
+      (data && (data.detail || data.message)) ||
+      "Erro ao remover telefone.";
+    throw new Error(msg);
+  }
+}
