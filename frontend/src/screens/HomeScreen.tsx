@@ -18,7 +18,8 @@ const steps = [
   "Ative respostas automáticas para perguntas frequentes.",
 ];
 
-export const HomeScreen: React.FC<Props> = ({ navigation }) => {
+export const HomeScreen: React.FC<Props> = ({ navigation, route }) => {
+  const usuarioId = route.params?.usuarioId;
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>

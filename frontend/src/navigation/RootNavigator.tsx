@@ -8,13 +8,13 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 
-// 👇 AQUI definimos e EXPORTAMOS o tipo RootStackParamList
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
-  Home: undefined; // se depois quiser passar params, muda aqui
+  Home: { usuarioId: string } | undefined;
 };
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
