@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/RootNavigator";
-import { getUser, getPhones, createPhone, updatePhone, deletePhone, Telefone } from "../services/api";
+import { getUser, getPhones, createPhone, updatePhone, deletePhone, Telefone, startWhatsapp } from "../services/api";
 import { ScreenContainer } from "../components/ScreenContainer";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -31,6 +31,9 @@ export const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [salvandoTelefone, setSalvandoTelefone] = useState<boolean>(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [menuAberto, setMenuAberto] = useState<boolean>(false);
+
+  const [ativandoWhatsappId, setAtivandoWhatsappId] = useState<number | null>(null);
+
 
   useEffect(() => {
     if (!usuarioId) {
@@ -65,8 +68,8 @@ export const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
     statusConta === "TRIAL_ATIVO"
       ? "Teste grátis Zapera"
       : statusConta === "ATIVO"
-      ? "Plano Zapera Profissional"
-      : "Plano a definir";
+        ? "Plano Zapera Profissional"
+        : "Plano a definir";
 
   const iniciarCriacaoTelefone = () => {
     setEditandoId("novo");
@@ -129,6 +132,25 @@ export const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
       setSalvandoTelefone(false);
     }
   };
+
+  const handleAtivarWhatsapp = async (telefone: Telefone) => {
+    if (!usuarioId) return;
+
+    try {
+      setAtivandoWhatsappId(telefone.id);
+      setMensagem(null);
+
+      const resp = await startWhatsapp(usuarioId, telefone.id);
+      setMensagem(
+        resp.message || `Fluxo de ativação enviado para o número ${telefone.numero}.`
+      );
+    } catch (err: any) {
+      setMensagem(err.message || "Erro ao iniciar contato pelo WhatsApp.");
+    } finally {
+      setAtivandoWhatsappId(null);
+    }
+  };
+
 
   const handleRemoverTelefone = async (telefoneId: number) => {
     if (!usuarioId) return;
@@ -362,6 +384,23 @@ export const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
       </View>
+
+      {telefones.map((tel) => (
+        <View key={`activate-${tel.id}`} style={styles.phoneActions}>
+          <TouchableOpacity
+            style={styles.chipButton}
+            onPress={() => handleAtivarWhatsapp(tel)}
+            disabled={ativandoWhatsappId === tel.id}
+          >
+            {ativandoWhatsappId === tel.id ? (
+              <ActivityIndicator size="small" color="#22C55E" />
+            ) : (
+              <Text style={styles.chipButtonText}>Ativar no WhatsApp</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      ))}
+
 
       {/* Card de plano */}
       <View style={styles.card}>

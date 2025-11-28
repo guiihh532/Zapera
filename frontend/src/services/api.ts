@@ -210,3 +210,31 @@ export async function deletePhone(
     throw new Error(msg);
   }
 }
+
+export async function startWhatsapp(
+  usuarioId: string,
+  telefoneId?: number
+): Promise<{ message: string; execution_id?: string }> {
+  console.log("🔵 [startWhatsapp] Iniciando WhatsApp...", { usuarioId, telefoneId });
+
+  const response = await fetch(`${API_BASE_URL}/whatsapp/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      usuario_id: usuarioId,
+      telefone_id: telefoneId ?? null,
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  console.log("🟡 [startWhatsapp] status:", response.status, "body:", data);
+
+  if (!response.ok) {
+    const msg =
+      (data && (data.detail || data.message)) ||
+      "Erro ao iniciar contato pelo WhatsApp.";
+    throw new Error(msg);
+  }
+
+  return data as { message: string; execution_id?: string };
+}
