@@ -1,0 +1,42 @@
+id: zapera_whatsapp_start
+namespace: prod.zapera
+
+inputs:
+  - name: usuario_id
+    type: STRING
+  - name: telefone_id
+    type: STRING
+  - name: nome_usuario
+    type: STRING
+  - name: numero
+    type: STRING
+
+tasks:
+  - id: log_input
+    type: io.kestra.plugin.core.log.Log
+    message: >
+      Iniciando WhatsApp para {{ inputs.nome_usuario }} no número {{ inputs.numero }}
+      (usuario_id={{ inputs.usuario_id }}, telefone_id={{ inputs.telefone_id }})
+
+  - id: enviar_mensagem_inicial
+    type: io.kestra.plugin.http.Request
+    method: POST
+    url: "https://graph.facebook.com/{{ secrets.WHATSAPP_API_VERSION }}/{{ secrets.WHATSAPP_PHONE_NUMBER_ID }}/messages"
+
+    headers:
+      Authorization: "Bearer {{ secrets.WHATSAPP_TOKEN }}"
+      Content-Type: "application/json"
+
+    body: |
+      {
+        "messaging_product": "whatsapp",
+        "to": "{{ inputs.numero }}",
+        "type": "text",
+        "text": {
+          "body": "Olá {{ inputs.nome_usuario }} 👋\nAqui é o Zapera, seu agente de IA. Sua ativação foi realizada com sucesso!"
+        }
+      }
+
+  - id: sucesso
+    type: io.kestra.plugin.core.log.Log
+    message: "Mensagem inicial enviada com sucesso para {{ inputs.numero }}"

@@ -55,3 +55,8 @@ class UsuarioOut(UsuarioBase):
 
 class UsuarioUpdateTelefone(BaseModel):
     telefone_whatsapp: str
+
+
+class WhatsAppStartRequest(BaseModel):
+    usuario_id: UUID
+    telefone_id: Optional[int] = None

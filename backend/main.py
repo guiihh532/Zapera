@@ -5,10 +5,16 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List as ListType
+from kestra_client import executar_flow_whatsapp_start
+import os
 
 from database import Base, engine, get_db
 import models
 import schemas
+
+WHATSAPP_API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v22.0")
+WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
 
 app = FastAPI(title="Zapera Backend")
 
@@ -19,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 # cria as tabelas se ainda não existirem
 Base.metadata.create_all(bind=engine)
@@ -273,3 +281,91 @@ def remover_telefone(
     db.delete(telefone)
     db.commit()
     return
+
+@app.post("/whatsapp/start")
+async def iniciar_whatsapp(
+    payload: schemas.WhatsAppStartRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Inicia o contato do bot com o usuário via WhatsApp,
+    chamando o flow do Kestra.
+    """
+
+    # 1) Validar configs mínimas do WhatsApp
+    if not WHATSAPP_API_VERSION or not WHATSAPP_PHONE_NUMBER_ID or not WHATSAPP_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="Configurações do WhatsApp não definidas no servidor.",
+        )
+
+    # 2) Buscar usuário
+    usuario = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.id == payload.usuario_id)
+        .first()
+    )
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    # 3) Descobrir qual telefone usar
+    numero_raw = None
+
+    if payload.telefone_id is not None:
+        telefone = (
+            db.query(models.UsuarioTelefone)
+            .filter(
+                models.UsuarioTelefone.id == payload.telefone_id,
+                models.UsuarioTelefone.usuario_id == usuario.id,
+            )
+            .first()
+        )
+        if not telefone:
+            raise HTTPException(status_code=404, detail="Telefone não encontrado.")
+        numero_raw = telefone.numero
+    else:
+        telefone_principal = (
+            db.query(models.UsuarioTelefone)
+            .filter(
+                models.UsuarioTelefone.usuario_id == usuario.id,
+                models.UsuarioTelefone.is_principal == True,
+            )
+            .first()
+        )
+        if telefone_principal:
+            numero_raw = telefone_principal.numero
+
+    if not numero_raw:
+        raise HTTPException(
+            status_code=400,
+            detail="Nenhum telefone configurado para este usuário.",
+        )
+
+    # 4) Normalizar número – só dígitos (ideal é você já salvar como 55DDDNUMBER)
+    numero = "".join(filter(str.isdigit, numero_raw))
+
+    # 5) Montar inputs para o flow do Kestra
+    data_inputs = {
+        "usuario_id": str(usuario.id),
+        "telefone_id": str(payload.telefone_id) if payload.telefone_id else "",
+        "nome_usuario": usuario.nome,
+        "numero": numero,
+        "whatsapp_api_version": WHATSAPP_API_VERSION,
+        "whatsapp_phone_number_id": WHATSAPP_PHONE_NUMBER_ID,
+        "whatsapp_token": WHATSAPP_TOKEN,
+    }
+
+    # 6) Chamar o Kestra
+    try:
+        execution = await executar_flow_whatsapp_start(data_inputs)
+    except Exception as e:
+        print("Erro ao chamar fluxo Kestra:", e)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Erro ao chamar fluxo Kestra: {str(e)}",
+        )
+
+    return {
+        "message": "Ativação enviada ao Kestra com sucesso.",
+        "execution_id": execution.get("id"),
+    }
